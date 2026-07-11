@@ -1,0 +1,26 @@
+"""
+Pydantic schemas for authentication flows.
+"""
+from pydantic import BaseModel, EmailStr
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class Token(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
+class TokenPayload(BaseModel):
+    sub: str | None = None
+    role: str | None = None
+    type: str | None = None  # "access" | "refresh"
+    exp: int | None = None
