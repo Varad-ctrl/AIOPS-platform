@@ -168,8 +168,145 @@ Prometheus, Grafana, Loki, Jenkins).
 - [x] Environment variables managed via `.env` / pydantic-settings, nothing hardcoded
 - [x] Pytest suite covering health, auth, and RBAC — all passing
 
+## Phase 2 — Monitoring Platform
+
+Phase 2 turns the foundation into a real-time monitoring platform.
+
+**Monitoring stack** (`docker compose up --build` now also starts):
+
+| Service            | Port | Purpose                                   |
+|---------------------|------|--------------------------------------------|
+| Prometheus          | 9090 | Metric collection, alert rule evaluation   |
+| Node Exporter       | 9100 | Host-level CPU/memory/disk/network metrics |
+| kube-state-metrics  | 8080 | Kubernetes object state (no-op outside k8s)|
+| Alertmanager        | 9093 | Alert routing → webhooks the backend       |
+| Grafana             | 3000 | Dashboards (admin/admin by default)        |
+
+**New backend endpoints** (all under `/api/v1`, all RBAC-protected):
+
+```
+GET  /metrics/{cpu|memory|disk|network|load|filesystem}
+GET  /metrics/history/{cpu|memory|network}?hours=24
+GET  /metrics/prometheus            # self-metrics exposition for Prometheus to scrape
+
+GET  /kubernetes/pods[?namespace=]
+GET  /kubernetes/pods/{pod_name}
+GET  /kubernetes/nodes
+GET  /kubernetes/deployments[?namespace=]
+GET  /kubernetes/namespaces
+GET  /kubernetes/services[?namespace=]
+GET  /kubernetes/replicasets[?namespace=]
+GET  /kubernetes/statefulsets[?namespace=]
+
+GET  /cluster/health
+
+GET  /jenkins/jobs
+GET  /jenkins/builds?job_name=<name>
+GET  /jenkins/failed
+
+GET  /alerts
+GET  /alerts/active
+GET  /alerts/history
+POST /alerts/webhook                # Alertmanager pushes here
+```
+
+**Graceful degradation.** None of Prometheus, Kubernetes, or Jenkins are
+required for the stack to boot. Each service client checks connectivity up
+front:
+
+- No Prometheus reachable → `/metrics/*` returns `"available": false` instead of erroring.
+- No kubeconfig / not in-cluster → `/kubernetes/*` returns `"connected": false, "items": []`.
+- No `JENKINS_URL` set → `/jenkins/*` returns `"configured": false, "items": []`.
+
+This means the frontend renders correctly (with "not connected" hints)
+whether or not you've stood up the full monitoring stack yet.
+
+**Alerting.** Two paths converge on the same alert pipeline (save → email →
+log):
+
+1. Alertmanager evaluates `monitoring/prometheus/alert_rules.yml`
+   (CPU/memory > 90%, disk > 85%, target down) and pushes to
+   `POST /alerts/webhook`.
+2. A lightweight in-process scheduler (`app/core/scheduler.py`) polls the
+   same thresholds every 60 seconds as a backstop, so alerts still fire in
+   local dev without a running Alertmanager.
+
+Configure `SMTP_HOST` / `SMTP_USER` / `SMTP_PASSWORD` in `.env` to enable
+real email delivery (Gmail, Microsoft 365, or any SMTP relay); without it,
+alerts are still saved and logged, just not emailed.
+
+**New frontend pages:** Infrastructure (system-level gauges + cluster
+rollup), Kubernetes (pods/nodes/deployments tables), Metrics (live gauges +
+24h history charts), Alerts (active + history), Jenkins (job/build status).
+The Dashboard page now shows live gauges, active alert count, and cluster
+node count instead of Phase 1's static placeholders.
+
+**Database additions:** `metric_history`, `pod_metrics`, `cluster_metrics`,
+`jenkins_metrics` (Alembic migration `0002`).
+
+### Phase 2 validation checklist
+
+- [x] Prometheus, Node Exporter, Alertmanager, Grafana, kube-state-metrics added to Docker Compose
+- [x] `prometheus_service.py` executes PromQL and parses responses, with time-range support
+- [x] `/metrics/*` and `/metrics/history/*` endpoints live for all six metrics (cpu, memory, disk, network, load, filesystem)
+- [x] `kubernetes_service.py` + `/kubernetes/*` endpoints (pods, nodes, deployments, namespaces, services, replicasets, statefulsets)
+- [x] `/kubernetes/pods/{name}` returns per-pod CPU/memory/status/restarts
+- [x] `/cluster/health` aggregates Kubernetes + Prometheus into one response
+- [x] `jenkins_service.py` + `/jenkins/jobs`, `/jenkins/builds`, `/jenkins/failed`
+- [x] Alert Management: `/alerts`, `/alerts/active`, `/alerts/history`, `/alerts/webhook`, persisted to `alerts` / `notification_logs`
+- [x] Email notifications via SMTP, with graceful no-op when unconfigured
+- [x] Frontend: Infrastructure, Kubernetes, Metrics, Alerts, Jenkins pages with live-polling widgets
+- [x] `metric_history`, `pod_metrics`, `cluster_metrics`, `jenkins_metrics` tables (migration `0002`)
+- [x] Pytest coverage for graceful degradation + alert webhook create/resolve flow + all 6 history metrics
+
+> **Post-deploy fix:** history originally only allow-listed cpu/memory/network
+> even though the underlying Prometheus query map already covered all six
+> metrics. Fixed by widening `VALID_HISTORY_METRICS` to match `VALID_METRICS`.
+> While in there, `memory`, `disk`, `load`, and `filesystem` queries were
+> also wrapped in `avg(...)` so they resolve to a single series regardless
+> of how many nodes/mountpoints/interfaces Prometheus is scraping — needed
+> for correct behavior on anything beyond a single-node dev box (Kind,
+> OpenShift, multi-node clusters).
+
 ## What's next
 
-Phase 2 (Observability Layer) connects Prometheus, Node Exporter,
-kube-state-metrics, and the Kubernetes API so the **Monitoring** page starts
-showing live data instead of the "ships in Phase 2" placeholder.
+Phase 3 (Log Intelligence) adds Loki/OpenSearch log aggregation and a
+centralized log explorer. Phase 4 introduces the AI agent that reasons over
+everything Phase 2 now collects.
+
+## Module 2.6 — Alert Management (complete)
+
+Alerts now have a full lifecycle instead of just active/resolved:
+
+```
+active -> acknowledged -> resolved
+```
+
+New endpoints:
+
+```
+GET   /api/v1/alerts?severity=critical&source=prometheus&resolved=false&start=...&end=...
+GET   /api/v1/alerts/dashboard      # { active_alerts, critical, warning, resolved_today }
+GET   /api/v1/alerts/stats          # { total, active, resolved, critical, warning }
+POST  /api/v1/alerts/{id}/acknowledge   # active -> acknowledged (devops/admin only)
+POST  /api/v1/alerts/{id}/resolve        # -> resolved (devops/admin only)
+```
+
+**Incidents** are now modeled separately from alerts — an Alert is a raw
+signal, an Incident is what a human actually tracks to resolution. Incidents
+can be created directly or promoted from an existing alert:
+
+```
+GET   /api/v1/incidents?status=open
+GET   /api/v1/incidents/{id}
+POST  /api/v1/incidents                       # create directly (devops/admin)
+POST  /api/v1/incidents/from-alert/{alert_id}  # promote an alert (idempotent)
+PATCH /api/v1/incidents/{id}                    # open -> acknowledged -> resolved
+```
+
+Migration `0003` adds `alerts.status`, `alerts.acknowledged_by`, and
+`incidents.alert_id`. `alerts.resolved` (bool) is kept in sync with
+`status == "resolved"` so nothing that reads the old field breaks.
+
+The Alerts page in the frontend now shows a dashboard summary strip and
+Acknowledge/Resolve buttons (visible to `admin`/`devops_engineer` roles).

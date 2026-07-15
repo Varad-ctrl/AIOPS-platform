@@ -1,0 +1,34 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+rule_files:
+  - "alert_rules.yml"
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: "node-exporter"
+    static_configs:
+      - targets: ["node-exporter:9100"]
+        labels:
+          instance: "host"
+
+  - job_name: "aiops-backend"
+    metrics_path: /api/v1/metrics/prometheus
+    static_configs:
+      - targets: ["backend:8000"]
+
+  - job_name: "kube-state-metrics"
+    static_configs:
+      - targets: ["kube-state-metrics:8080"]
+    # Only reachable when a Kubernetes/kube-state-metrics deployment exists.
+    # Prometheus will simply mark this target DOWN in a non-k8s environment,
+    # it will not crash the stack.

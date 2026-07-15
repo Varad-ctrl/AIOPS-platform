@@ -32,13 +32,19 @@ class Alert(Base):
     severity: Mapped[str] = mapped_column(String(20), nullable=False, default="low")
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(Text, default="")
+    # "active" -> "acknowledged" -> "resolved". `resolved` is kept as a
+    # denormalized bool (status == "resolved") so existing queries/filters
+    # that only care about open-vs-closed don't need to change.
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="active")
     resolved: Mapped[bool] = mapped_column(default=False)
+    acknowledged_by: Mapped[str] = mapped_column(String(255), nullable=False, default="")
 
 
 class Incident(Base):
     __tablename__ = "incidents"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    alert_id: Mapped[int | None] = mapped_column(ForeignKey("alerts.id"), nullable=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     severity: Mapped[str] = mapped_column(String(20), nullable=False, default="low")
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="open")

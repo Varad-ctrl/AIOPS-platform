@@ -14,7 +14,7 @@ from app.db.init_db import seed_roles
 from app.main import app
 
 # Import models so Base.metadata knows about every table
-from app.models import role, user, operations  # noqa: F401
+from app.models import role, user, operations, monitoring  # noqa: F401
 
 TEST_DATABASE_URL = "sqlite:///:memory:"
 
@@ -50,3 +50,43 @@ def client(db_session):
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(scope="function")
+def auth_headers(client):
+    """Registers a viewer user and returns Authorization headers for it."""
+    client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "fixture-user@example.com",
+            "full_name": "Fixture User",
+            "password": "SuperSecret123",
+            "role": "viewer",
+        },
+    )
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"email": "fixture-user@example.com", "password": "SuperSecret123"},
+    )
+    token = response.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture(scope="function")
+def admin_headers(client):
+    """Registers an admin user and returns Authorization headers for it."""
+    client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "fixture-admin@example.com",
+            "full_name": "Fixture Admin",
+            "password": "SuperSecret123",
+            "role": "admin",
+        },
+    )
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"email": "fixture-admin@example.com", "password": "SuperSecret123"},
+    )
+    token = response.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}

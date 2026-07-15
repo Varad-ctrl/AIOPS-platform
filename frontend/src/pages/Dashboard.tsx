@@ -1,8 +1,16 @@
 import { useAuth } from "@/contexts/AuthContext";
 import StatCard from "@/components/StatCard";
+import Gauge from "@/components/Gauge";
+import { usePolling } from "@/hooks/usePolling";
+import { fetchAllCoreMetrics } from "@/services/metricsService";
+import { fetchActiveAlerts } from "@/services/alertsService";
+import { fetchClusterHealth } from "@/services/kubernetesService";
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { data: metrics } = usePolling(fetchAllCoreMetrics, 15000);
+  const { data: activeAlerts } = usePolling(fetchActiveAlerts, 15000);
+  const { data: cluster } = usePolling(fetchClusterHealth, 20000);
 
   return (
     <div className="space-y-6">
@@ -12,15 +20,42 @@ export default function Dashboard() {
           Welcome back, {user?.full_name || user?.email}
         </h1>
         <p className="text-sm text-ink-secondary mt-1">
-          This foundation is live. Metrics, incidents, and AI analysis populate here starting in
-          Phase 2.
+          Live infrastructure metrics, cluster health, and alerts at a glance.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Open incidents" value="0" tone="ok" hint="Phase 5 will populate this" />
-        <StatCard label="Active alerts" value="0" tone="ok" hint="Phase 5 will populate this" />
-        <StatCard label="Monitored nodes" value="—" tone="info" hint="Phase 2 will populate this" />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <Gauge label="CPU" value={metrics?.cpu.value ?? null} available={metrics?.cpu.available} />
+        <Gauge
+          label="Memory"
+          value={metrics?.memory.value ?? null}
+          available={metrics?.memory.available}
+        />
+        <Gauge
+          label="Disk"
+          value={metrics?.disk.value ?? null}
+          available={metrics?.disk.available}
+        />
+        <Gauge
+          label="Network"
+          value={metrics?.network.value ?? null}
+          unit="B/s"
+          available={metrics?.network.available}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard
+          label="Active alerts"
+          value={String(activeAlerts?.length ?? 0)}
+          tone={activeAlerts && activeAlerts.length > 0 ? "crit" : "ok"}
+        />
+        <StatCard
+          label="Cluster nodes"
+          value={String(cluster?.nodes ?? "—")}
+          tone="info"
+          hint={cluster?.cluster}
+        />
         <StatCard label="Your role" value={user?.role ?? "—"} tone="info" />
       </div>
 
@@ -28,7 +63,7 @@ export default function Dashboard() {
         <p className="label-eyebrow mb-3">Roadmap status</p>
         <ul className="space-y-2 text-sm">
           <RoadmapRow label="Phase 1 — Project Foundation" status="done" />
-          <RoadmapRow label="Phase 2 — Observability Layer" status="pending" />
+          <RoadmapRow label="Phase 2 — Observability Layer" status="done" />
           <RoadmapRow label="Phase 3 — Log Intelligence" status="pending" />
           <RoadmapRow label="Phase 4 — AI Agent" status="pending" />
           <RoadmapRow label="Phase 5 — Incident Detection Engine" status="pending" />

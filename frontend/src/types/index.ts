@@ -25,3 +25,85 @@ export interface RegisterPayload {
   password: string;
   role: Role;
 }
+
+// --- Phase 2: Monitoring ---
+
+export interface MetricValue {
+  metric: string;
+  value: number | null;
+  unit: string;
+  available: boolean;
+}
+
+export interface MetricHistoryPoint {
+  timestamp: string;
+  value: number;
+}
+
+export interface ListResponse<T> {
+  connected?: boolean;
+  configured?: boolean;
+  items: T[];
+}
+
+export interface K8sPod {
+  name: string;
+  namespace: string;
+  status: string;
+  node: string;
+  restarts: number;
+  container_count: number;
+  cpu: string;
+  memory: string;
+}
+
+export interface K8sNode {
+  name: string;
+  status: string;
+  cpu_capacity: string | null;
+  memory_capacity: string | null;
+  kubelet_version: string | null;
+}
+
+export interface K8sDeployment {
+  name: string;
+  namespace: string;
+  replicas: number;
+  ready_replicas: number;
+  available_replicas: number;
+  healthy: boolean;
+}
+
+export interface ClusterHealth {
+  cluster: string;
+  nodes: number;
+  pods: number;
+  deployments: number;
+  cpu_usage: number | null;
+  memory_usage: number | null;
+  disk_usage: number | null;
+}
+
+export interface JenkinsJob {
+  name: string;
+  status: string;
+  url: string;
+}
+
+export interface Alert {
+  id: number;
+  source: string;
+  severity: string;
+  title: string;
+  description: string;
+  status: string;
+  resolved: boolean;
+  acknowledged_by: string;
+}
+
+export interface AlertDashboardSummary {
+  active_alerts: number;
+  critical: number;
+  warning: number;
+  resolved_today: number;
+}

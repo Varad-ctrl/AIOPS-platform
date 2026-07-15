@@ -53,6 +53,8 @@ class Settings(BaseSettings):
     GRAFANA_URL: str = "http://grafana:3000"
     LOKI_URL: str = "http://loki:3100"
     JENKINS_URL: str = ""
+    JENKINS_USER: str = ""
+    JENKINS_API_TOKEN: str = ""
 
     # --- Logging ---
     LOG_LEVEL: str = "INFO"

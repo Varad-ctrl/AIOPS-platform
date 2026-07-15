@@ -6,7 +6,11 @@ import AppShell from "@/layouts/AppShell";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Dashboard from "@/pages/Dashboard";
-import Monitoring from "@/pages/Monitoring";
+import Infrastructure from "@/pages/Infrastructure";
+import Kubernetes from "@/pages/Kubernetes";
+import Metrics from "@/pages/Metrics";
+import Alerts from "@/pages/Alerts";
+import Jenkins from "@/pages/Jenkins";
 import Incidents from "@/pages/Incidents";
 import AIChat from "@/pages/AIChat";
 import Settings from "@/pages/Settings";
@@ -25,7 +29,11 @@ export default function App() {
             <Route element={<ProtectedRoute />}>
               <Route element={<AppShell />}>
                 <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/monitoring" element={<Monitoring />} />
+                <Route path="/infrastructure" element={<Infrastructure />} />
+                <Route path="/kubernetes" element={<Kubernetes />} />
+                <Route path="/metrics" element={<Metrics />} />
+                <Route path="/alerts" element={<Alerts />} />
+                <Route path="/jenkins" element={<Jenkins />} />
                 <Route path="/incidents" element={<Incidents />} />
                 <Route path="/chat" element={<AIChat />} />
                 <Route path="/settings" element={<Settings />} />
