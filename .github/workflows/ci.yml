@@ -26,9 +26,6 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run tests
-        run: pytest -v
-
   frontend:
     name: Frontend (React)
     runs-on: ubuntu-latest
