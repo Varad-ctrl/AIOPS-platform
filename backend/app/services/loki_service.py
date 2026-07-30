@@ -11,7 +11,7 @@ LogQL primer for anyone reading this file cold:
     {label="value"} |= "text"    -> line contains "text"
     {label="value"} | level="error"  -> filter on an extracted label
 """
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
@@ -88,7 +88,7 @@ class LokiService:
         direction: str = "backward",
     ) -> list[dict[str, Any]]:
         """Runs a LogQL range query, returns entries newest-first by default."""
-        end = end or datetime.now(timezone.utc)
+        end = end or datetime.now(UTC)
         start = start or (end - timedelta(hours=1))
 
         data = await self._get(
@@ -111,7 +111,7 @@ class LokiService:
                 entries.append(
                     {
                         "timestamp": datetime.fromtimestamp(
-                            int(ts_ns) / 1e9, tz=timezone.utc
+                            int(ts_ns) / 1e9, tz=UTC
                         ).isoformat(),
                         "message": line,
                         "labels": labels,
@@ -125,7 +125,7 @@ class LokiService:
         query = self.build_query()
         return await self.query_range(
             query,
-            start=datetime.now(timezone.utc) - timedelta(hours=hours),
+            start=datetime.now(UTC) - timedelta(hours=hours),
             limit=limit,
         )
 
@@ -151,7 +151,7 @@ class LokiService:
         )
         return await self.query_range(
             query,
-            start=datetime.now(timezone.utc) - timedelta(hours=hours),
+            start=datetime.now(UTC) - timedelta(hours=hours),
             limit=limit,
         )
 

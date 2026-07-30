@@ -12,6 +12,7 @@ result with `available: False` rather than raising - the dashboard shows
 "cluster not connected" instead of crashing.
 """
 from typing import Any
+
 from app.core.config import settings
 from app.core.logging_config import get_logger
 

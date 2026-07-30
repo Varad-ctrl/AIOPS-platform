@@ -17,7 +17,7 @@ Two ways alerts are created:
 Either path converges on `_raise_alert()`, which: saves the alert, sends an
 email, and logs the notification.
 """
-from datetime import datetime, time, timezone
+from datetime import UTC, datetime, time
 
 from sqlalchemy.orm import Session
 
@@ -92,7 +92,7 @@ class AlertService:
         """Module 2.6.2 - GET /alerts/dashboard"""
         open_alerts = self.db.query(Alert).filter(Alert.status.in_(OPEN_STATUSES)).all()
         today_start = datetime.combine(
-            datetime.now(timezone.utc).date(), time.min, tzinfo=timezone.utc
+            datetime.now(UTC).date(), time.min, tzinfo=UTC
         )
         resolved_today = (
             self.db.query(Alert)

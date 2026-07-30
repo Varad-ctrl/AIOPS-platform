@@ -6,9 +6,9 @@ pydantic-settings. Nothing sensitive is hardcoded here - see .env.example
 for the full list of variables this application expects.
 """
 from functools import lru_cache
-from typing import ClassVar, List
+from typing import ClassVar
 
-from pydantic import AnyHttpUrl, field_validator
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     DB_ECHO: bool = False
 
     # --- CORS ---
-    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
+    BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod

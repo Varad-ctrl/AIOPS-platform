@@ -8,9 +8,9 @@ Responsibilities (per roadmap Module 2.2):
     - Handle query failures without crashing the API (returns None/[] and
       lets the route layer decide how to respond)
 """
-from datetime import datetime, timedelta, timezone
-from typing import Any
 import math
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import httpx
 
@@ -141,7 +141,7 @@ class PrometheusService:
                 points.append(
                     {
                         "timestamp": datetime.fromtimestamp(
-                            float(timestamp), tz=timezone.utc
+                            float(timestamp), tz=UTC
                         ).isoformat(),
                         "value": round(float(value), 2),
                     }
@@ -171,7 +171,7 @@ class PrometheusService:
         if promql is None:
             raise ValueError(f"Unknown metric '{metric_name}'")
 
-        end = datetime.now(timezone.utc)
+        end = datetime.now(UTC)
         start = end - timedelta(hours=hours)
         return await self.range_query(promql, start, end, step)
 

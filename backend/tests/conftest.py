@@ -3,18 +3,17 @@ Shared pytest fixtures. Uses an in-memory SQLite DB so the test suite has
 no external dependencies (no running Postgres needed).
 """
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
-
 from app.api.deps import get_db
 from app.db.base_class import Base
 from app.db.init_db import seed_roles
 from app.main import app
 
 # Import models so Base.metadata knows about every table
-from app.models import role, user, operations, monitoring  # noqa: F401
+from app.models import monitoring, operations, role, user  # noqa: F401
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 TEST_DATABASE_URL = "sqlite:///:memory:"
 

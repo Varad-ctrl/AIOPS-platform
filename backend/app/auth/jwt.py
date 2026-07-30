@@ -4,7 +4,7 @@ JWT + password hashing utilities.
 Access tokens are short-lived and used to authorize API requests.
 Refresh tokens are longer-lived and are only used to mint new access tokens.
 """
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from jose import JWTError, jwt
@@ -24,7 +24,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def _create_token(subject: str, role: str, token_type: str, expires_delta: timedelta) -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload: dict[str, Any] = {
         "sub": subject,
         "role": role,
