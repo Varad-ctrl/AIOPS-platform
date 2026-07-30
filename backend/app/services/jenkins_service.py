@@ -24,6 +24,11 @@ class JenkinsService:
         timeout: float = 5.0,
     ):
         self.base_url = (base_url or settings.JENKINS_URL or "").rstrip("/")
+
+        # Load credentials from settings if not explicitly passed
+        user = user or settings.JENKINS_USER
+        api_token = api_token or settings.JENKINS_API_TOKEN
+
         self.auth = (user, api_token) if user and api_token else None
         self.timeout = timeout
 
@@ -46,6 +51,13 @@ class JenkinsService:
 
     async def get_jobs(self) -> list[dict[str, Any]]:
         data = await self._get("/api/json?tree=jobs[name,color,url]")
+        
+        print("=" * 60)
+        print("JENKINS BASE URL:", self.base_url)
+        print("RAW RESPONSE:", data)
+        print("=" * 60)
+
+
         if not data:
             return []
         return [

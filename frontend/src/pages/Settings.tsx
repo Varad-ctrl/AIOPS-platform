@@ -21,19 +21,12 @@ export default function Settings() {
       </div>
 
       <div className="panel p-6">
-        <p className="label-eyebrow mb-4">Notification channels</p>
-        <p className="text-sm text-ink-secondary">
-          Email alerts arrive in Phase 7. Slack and Microsoft Teams follow in Phase 9.
-        </p>
-      </div>
-
-      <div className="panel p-6">
         <p className="label-eyebrow mb-4">Connected integrations</p>
         <ul className="text-sm text-ink-secondary space-y-1.5">
-          <li>Prometheus — Phase 2</li>
-          <li>Loki — Phase 3</li>
-          <li>Jenkins — Phase 2 / Phase 7</li>
-          <li>Kubernetes / OpenShift — Phase 2</li>
+          <li>Prometheus</li>
+          <li>Loki</li>
+          <li>Jenkins</li>
+          <li>Kubernetes</li>
         </ul>
       </div>
     </div>

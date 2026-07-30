@@ -1,0 +1,67 @@
+{
+  "title": "Cluster Dashboard",
+  "uid": "aiops-cluster-dashboard",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Nodes Ready",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "targets": [{ "expr": "sum(kube_node_status_condition{condition=\"Ready\", status=\"true\"})" }]
+    },
+    {
+      "id": 2,
+      "title": "Pods Running",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+      "targets": [{ "expr": "sum(kube_pod_status_phase{phase=\"Running\"})" }]
+    },
+    {
+      "id": 3,
+      "title": "Deployments",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 },
+      "targets": [{ "expr": "count(kube_deployment_status_replicas)" }]
+    },
+    {
+      "id": 4,
+      "title": "Unhealthy Deployments",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        {
+          "expr": "count(kube_deployment_status_replicas_available != on(deployment) kube_deployment_spec_replicas)"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Pod Phase Breakdown",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "targets": [
+        {
+          "expr": "sum(kube_pod_status_phase) by (phase)",
+          "legendFormat": "{{phase}}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Namespace Pod Count",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "targets": [
+        {
+          "expr": "count(kube_pod_info) by (namespace)",
+          "legendFormat": "{{namespace}}"
+        }
+      ]
+    }
+  ]
+}

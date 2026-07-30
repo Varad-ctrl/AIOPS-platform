@@ -124,6 +124,34 @@ services:
       - "3001:3000"
     depends_on:
       - prometheus
+      - loki
+    networks:
+      - aiops-network
+
+  loki:
+    image: grafana/loki:3.1.0
+    container_name: aiops-loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./monitoring/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+    ports:
+      - "3100:3100"
+    networks:
+      - aiops-network
+
+  promtail:
+    image: grafana/promtail:3.1.0
+    container_name: aiops-promtail
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/promtail-config.yml
+    volumes:
+      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    depends_on:
+      - loki
     networks:
       - aiops-network
 
@@ -135,3 +163,4 @@ volumes:
   postgres_data:
   prometheus_data:
   grafana_data:
+  loki_data:

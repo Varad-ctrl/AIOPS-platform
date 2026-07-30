@@ -12,7 +12,7 @@ result with `available: False` rather than raising - the dashboard shows
 "cluster not connected" instead of crashing.
 """
 from typing import Any
-
+from app.core.config import settings
 from app.core.logging_config import get_logger
 
 logger = get_logger("kubernetes_service")
@@ -39,16 +39,29 @@ class KubernetesService:
         try:
             try:
                 config.load_incluster_config()
-                logger.info("kubernetes_config_loaded", source="in-cluster")
+                logger.info(
+                    "kubernetes_config_loaded",
+                    source="in-cluster",
+                )
             except Exception:
-                config.load_kube_config()
-                logger.info("kubernetes_config_loaded", source="kubeconfig")
+                config.load_kube_config(
+                    context=settings.KUBE_CONTEXT
+                )
+                logger.info(
+                    "kubernetes_config_loaded",
+                    source="kubeconfig",
+                    context=settings.KUBE_CONTEXT,
+                )
 
             self.core_v1 = client.CoreV1Api()
             self.apps_v1 = client.AppsV1Api()
             self.connected = True
+
         except Exception as exc:
-            logger.warning("kubernetes_not_connected", error=str(exc))
+            logger.warning(
+                "kubernetes_not_connected",
+                error=str(exc),
+            )
             self.connected = False
 
     def get_pods(self, namespace: str | None = None) -> list[dict[str, Any]]:

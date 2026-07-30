@@ -12,6 +12,7 @@ import Metrics from "@/pages/Metrics";
 import Alerts from "@/pages/Alerts";
 import Jenkins from "@/pages/Jenkins";
 import Incidents from "@/pages/Incidents";
+import Logs from "@/pages/Logs";
 import AIChat from "@/pages/AIChat";
 import Settings from "@/pages/Settings";
 
@@ -35,6 +36,7 @@ export default function App() {
                 <Route path="/alerts" element={<Alerts />} />
                 <Route path="/jenkins" element={<Jenkins />} />
                 <Route path="/incidents" element={<Incidents />} />
+                <Route path="/logs" element={<Logs />} />
                 <Route path="/chat" element={<AIChat />} />
                 <Route path="/settings" element={<Settings />} />
               </Route>

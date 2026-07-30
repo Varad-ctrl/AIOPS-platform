@@ -107,3 +107,66 @@ export interface AlertDashboardSummary {
   warning: number;
   resolved_today: number;
 }
+
+// --- Logs & AI ---
+
+export interface LogEntry {
+  timestamp: string;
+  message: string;
+  labels: Record<string, string>;
+}
+
+export interface LogSearchResponse {
+  available: boolean;
+  count: number;
+  items: LogEntry[];
+}
+
+export interface LogSummary {
+  available: boolean;
+  summary: string;
+  log_count: number;
+}
+
+export interface AnomalyResult {
+  available: boolean;
+  findings: string;
+  log_count: number;
+}
+
+export interface LogAnalysisResult {
+  available: boolean;
+  summary: string;
+  findings: string;
+  log_count: number;
+}
+
+export interface RootCauseResult {
+  available: boolean;
+  root_cause: string;
+  confidence: string;
+  recommendation: string;
+  evidence: string[];
+  incident_id: number | null;
+}
+
+export interface IncidentSummaryResult {
+  available: boolean;
+  summary: string;
+}
+
+export interface RecommendationsResult {
+  available: boolean;
+  recommendations: string;
+}
+
+export interface AIQueryResponse {
+  available: boolean;
+  answer: string;
+}
+
+export interface ChatMessage {
+  role: string;
+  message: string;
+  created_at: string;
+}

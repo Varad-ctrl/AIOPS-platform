@@ -6,7 +6,7 @@ pydantic-settings. Nothing sensitive is hardcoded here - see .env.example
 for the full list of variables this application expects.
 """
 from functools import lru_cache
-from typing import List
+from typing import ClassVar, List
 
 from pydantic import AnyHttpUrl, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -41,14 +41,29 @@ class Settings(BaseSettings):
             return [origin.strip() for origin in v.split(",")]
         return v
 
-    # --- Third-party integrations (used in later phases, wired now) ---
+    # --- AI / LLM provider (Module 5.1) ---
+    # LLM_PROVIDER selects a preset base URL + default model; any of the
+    # three can still be overridden individually via LLM_BASE_URL/LLM_MODEL.
+    # groq   -> fast + generous free tier, recommended for local development
+    # openai -> production-grade, official OpenAI API
+    # ollama -> fully local, no API key required, needs `ollama serve` running
+    LLM_PROVIDER: str = "groq"  # groq | openai | ollama
+    LLM_API_KEY: str = ""
+    LLM_BASE_URL: str = ""  # overrides the provider preset when set
+    LLM_MODEL: str = ""  # overrides the provider preset when set
+    # Back-compat: earlier phases used OPENAI_API_KEY directly. Still read
+    # as a fallback so existing .env files don't silently stop working.
     OPENAI_API_KEY: str = ""
+    OPENAI_BASE_URL: str = ""
+
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
     SMTP_FROM_EMAIL: str = "aiops-assistant@example.com"
 
+    # --- Kubernetes ---
+    KUBE_CONTEXT: str | None = None
     PROMETHEUS_URL: str = "http://prometheus:9090"
     GRAFANA_URL: str = "http://grafana:3000"
     LOKI_URL: str = "http://loki:3100"
@@ -66,6 +81,30 @@ class Settings(BaseSettings):
         case_sensitive=True,
         extra="ignore",
     )
+
+    # Provider presets: (base_url, default_model). Ollama needs no API key -
+    # it's a local server, so LLM_API_KEY can stay empty for that provider.
+    LLM_PRESETS: ClassVar[dict] = {
+        "groq": ("https://api.groq.com/openai/v1", "llama-3.3-70b-versatile"),
+        "openai": ("https://api.openai.com/v1", "gpt-4o-mini"),
+        "ollama": ("http://host.docker.internal:11434/v1", "llama3"),
+    }
+
+    def resolve_llm_config(self) -> dict:
+        """Resolves the effective (api_key, base_url, model) for AIService,
+        applying provider presets first and letting explicit overrides and
+        legacy OPENAI_* settings win."""
+        preset_base_url, preset_model = self.LLM_PRESETS.get(
+            self.LLM_PROVIDER, self.LLM_PRESETS["openai"]
+        )
+        api_key = self.LLM_API_KEY or self.OPENAI_API_KEY
+        base_url = self.LLM_BASE_URL or self.OPENAI_BASE_URL or preset_base_url
+        model = self.LLM_MODEL or preset_model
+        # Ollama doesn't check the key, but the OpenAI-compatible client
+        # still expects an Authorization header - any non-empty string works.
+        if self.LLM_PROVIDER == "ollama" and not api_key:
+            api_key = "ollama-local"
+        return {"api_key": api_key, "base_url": base_url, "model": model}
 
 
 @lru_cache

@@ -13,6 +13,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import (
+    ai,
     alerts,
     auth,
     cluster,
@@ -20,6 +21,7 @@ from app.api.routes import (
     incidents,
     jenkins,
     kubernetes,
+    logs,
     metrics,
     self_metrics,
     users,
@@ -59,17 +61,20 @@ tags_metadata = [
     {"name": "Jenkins", "description": "CI/CD job and build status."},
     {"name": "Alerts", "description": "Alert history, active alerts, and the Alertmanager webhook receiver."},
     {"name": "Incidents", "description": "Human-tracked incidents, optionally promoted from alerts."},
+    {"name": "Logs", "description": "Log search and retrieval, backed by Loki."},
+    {"name": "AI Insights", "description": "AI-powered log analysis, root cause analysis, recommendations, and natural language chat."},
 ]
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     description=(
-        "AI-Powered AIOps Assistant API - Phase 1 (JWT auth + RBAC foundation), "
-        "Phase 2 monitoring (Prometheus, Kubernetes, Jenkins), and full alert "
-        "lifecycle + incident management are live. Later phases add log "
-        "intelligence, an AI agent, and automated root-cause analysis."
+        "AI-Powered AIOps Assistant API - Phase 1 (JWT auth + RBAC), Phase 2 "
+        "(Prometheus, Kubernetes, Jenkins, alert lifecycle, incidents), Phase 3/4 "
+        "(Loki log search + observability dashboards), and Phase 5 (LLM-powered "
+        "root cause analysis, recommendations, and natural language chat) are "
+        "all live."
     ),
-    version="0.2.1",
+    version="0.5.0",
     openapi_tags=tags_metadata,
     docs_url="/docs",
     redoc_url="/redoc",
@@ -97,6 +102,8 @@ app.include_router(cluster.router, prefix=settings.API_V1_PREFIX)
 app.include_router(jenkins.router, prefix=settings.API_V1_PREFIX)
 app.include_router(alerts.router, prefix=settings.API_V1_PREFIX)
 app.include_router(incidents.router, prefix=settings.API_V1_PREFIX)
+app.include_router(logs.router, prefix=settings.API_V1_PREFIX)
+app.include_router(ai.router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/", tags=["Health"], summary="Root")

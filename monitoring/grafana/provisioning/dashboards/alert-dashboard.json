@@ -1,0 +1,99 @@
+{
+  "title": "Alert Dashboard",
+  "uid": "aiops-alert-dashboard",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-24h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Active Alerts",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "targets": [
+        {
+          "rawSql": "SELECT count(*) FROM alerts WHERE status IN ('active','acknowledged')",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Critical Alerts (open)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "targets": [
+        {
+          "rawSql": "SELECT count(*) FROM alerts WHERE status IN ('active','acknowledged') AND severity = 'critical'",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Resolved Today",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "targets": [
+        {
+          "rawSql": "SELECT count(*) FROM alerts WHERE status = 'resolved' AND updated_at >= CURRENT_DATE",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Total Alerts (all time)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "targets": [
+        { "rawSql": "SELECT count(*) FROM alerts", "format": "table" }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Alerts by Severity (open)",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "targets": [
+        {
+          "rawSql": "SELECT severity, count(*) AS value FROM alerts WHERE status IN ('active','acknowledged') GROUP BY severity",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Alerts Created Over Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('hour', created_at) AS time, count(*) AS alerts FROM alerts WHERE created_at > now() - interval '24 hours' GROUP BY 1 ORDER BY 1",
+          "format": "time_series"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Recent Alerts",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 14 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "targets": [
+        {
+          "rawSql": "SELECT created_at, source, severity, status, title FROM alerts ORDER BY created_at DESC LIMIT 50",
+          "format": "table"
+        }
+      ]
+    }
+  ]
+}

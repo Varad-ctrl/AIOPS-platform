@@ -1,0 +1,37 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # Scrapes every container on this Docker host via the Docker daemon socket,
+  # which per Module 4.3 covers backend, frontend, postgres, prometheus,
+  # alertmanager, and grafana automatically - no per-service config needed.
+  # Works the same way on Docker Desktop (Windows/Mac), WSL, and native Linux.
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      - source_labels: ["__meta_docker_container_name"]
+        regex: "/(.*)"
+        target_label: container
+      - source_labels: ["__meta_docker_container_label_com_docker_compose_service"]
+        target_label: service
+      - source_labels: ["__meta_docker_container_label_com_docker_compose_project"]
+        target_label: project
+
+    pipeline_stages:
+      # Best-effort log-level extraction so /logs/errors and severity
+      # filtering have something real to work with, even though not every
+      # container logs a consistent level prefix. Unmatched lines simply
+      # get no `level` label and still show up in unfiltered search.
+      - regex:
+          expression: '(?i)\b(?P<level>trace|debug|info|warn(?:ing)?|error|critical|fatal)\b'
+      - labels:
+          level:

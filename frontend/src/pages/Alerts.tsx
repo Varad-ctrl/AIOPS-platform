@@ -10,6 +10,9 @@ import {
   fetchAllAlerts,
   resolveAlert,
 } from "@/services/alertsService";
+import { promoteAlertToIncident } from "@/services/incidentsService";
+import { fetchRecommendations } from "@/services/aiService";
+import type { RecommendationsResult } from "@/types";
 
 const STATUS_BADGE: Record<string, string> = {
   active: "Failed",
@@ -20,6 +23,8 @@ const STATUS_BADGE: Record<string, string> = {
 export default function Alerts() {
   const [showAll, setShowAll] = useState(false);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [recs, setRecs] = useState<RecommendationsResult | null>(null);
+  const [recsLoading, setRecsLoading] = useState(false);
   const { user } = useAuth();
   const canManage = user?.role === "admin" || user?.role === "devops_engineer";
 
@@ -44,6 +49,24 @@ export default function Alerts() {
       await resolveAlert(id);
     } finally {
       setBusyId(null);
+    }
+  }
+
+  async function handlePromote(id: number) {
+    setBusyId(id);
+    try {
+      await promoteAlertToIncident(id);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleRecommendations() {
+    setRecsLoading(true);
+    try {
+      setRecs(await fetchRecommendations());
+    } finally {
+      setRecsLoading(false);
     }
   }
 
@@ -73,6 +96,18 @@ export default function Alerts() {
         <StatCard label="Resolved today" value={String(summary?.resolved_today ?? "—")} tone="ok" />
       </div>
 
+      <div className="panel p-4">
+        <div className="flex items-center justify-between mb-2">
+          <p className="label-eyebrow">AI recommendations</p>
+          <button onClick={handleRecommendations} disabled={recsLoading} className="btn-ghost text-xs py-1">
+            {recsLoading ? "Thinking…" : "Get recommendations"}
+          </button>
+        </div>
+        <p className="text-sm text-ink-secondary whitespace-pre-wrap">
+          {recs ? recs.recommendations : "Based on current alerts, incidents, and metrics."}
+        </p>
+      </div>
+
       <div className="panel divide-y divide-base-700">
         {(alerts ?? []).map((alert) => (
           <div key={alert.id} className="p-4 flex items-start justify-between gap-4">
@@ -100,6 +135,13 @@ export default function Alerts() {
                     Acknowledge
                   </button>
                 )}
+                <button
+                  onClick={() => handlePromote(alert.id)}
+                  disabled={busyId === alert.id}
+                  className="btn-ghost text-xs py-1"
+                >
+                  Promote to incident
+                </button>
                 <button
                   onClick={() => handleResolve(alert.id)}
                   disabled={busyId === alert.id}

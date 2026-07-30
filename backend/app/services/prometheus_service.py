@@ -10,6 +10,7 @@ Responsibilities (per roadmap Module 2.2):
 """
 from datetime import datetime, timedelta, timezone
 from typing import Any
+import math
 
 import httpx
 
@@ -33,10 +34,19 @@ logger = get_logger("prometheus_service")
 QUERIES = {
     "cpu": '100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)',
     "memory": "avg((1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100)",
-    "disk": (
-        'avg((1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} '
-        '/ node_filesystem_size_bytes{fstype!~"tmpfs|overlay"})) * 100)'
-    ),
+   "disk": (
+    '100 * ('
+    '1 - ('
+    'node_filesystem_avail_bytes{'
+    'mountpoint="/var/lib",'
+    'fstype="ext4"}'
+    '/'
+    'node_filesystem_size_bytes{'
+    'mountpoint="/var/lib",'
+    'fstype="ext4"}'
+    ')'
+    ')'
+),
     "network": (
         "sum(rate(node_network_receive_bytes_total{device!~\"lo\"}[5m])) + "
         "sum(rate(node_network_transmit_bytes_total{device!~\"lo\"}[5m]))"
@@ -74,19 +84,33 @@ class PrometheusService:
             return None
 
     async def instant_query(self, promql: str) -> float | None:
-        """Run an instant PromQL query, return the first scalar result."""
-        data = await self._get("/api/v1/query", {"query": promql})
-        if not data or data.get("status") != "success":
+     """Run an instant PromQL query, return the first scalar result."""
+
+     data = await self._get("/api/v1/query", {"query": promql})
+
+     if not data or data.get("status") != "success":
+        return None
+
+     result = data.get("data", {}).get("result", [])
+     if not result:
+        return None
+
+     try:
+        value = float(result[0]["value"][1])
+
+        # Handle NaN and Infinity
+        if math.isnan(value) or math.isinf(value):
+            logger.warning(
+                "Invalid Prometheus value",
+                query=promql,
+                value=result[0]["value"][1],
+            )
             return None
 
-        result = data.get("data", {}).get("result", [])
-        if not result:
-            return None
+        return round(value, 2)
 
-        try:
-            return round(float(result[0]["value"][1]), 2)
-        except (KeyError, IndexError, ValueError, TypeError):
-            return None
+     except (KeyError, IndexError, ValueError, TypeError):
+        return None
 
     async def range_query(
         self, promql: str, start: datetime, end: datetime, step: str = "60s"

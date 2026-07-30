@@ -1,0 +1,86 @@
+{
+  "title": "Jenkins Dashboard",
+  "uid": "aiops-jenkins-dashboard",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "time": { "from": "now-7d", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Builds Recorded",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "targets": [
+        { "rawSql": "SELECT count(*) FROM jenkins_metrics", "format": "table" }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Failed Builds (7d)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "targets": [
+        {
+          "rawSql": "SELECT count(*) FROM jenkins_metrics WHERE status = 'FAILURE' AND created_at >= now() - interval '7 days'",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Avg Build Duration (ms)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "targets": [
+        {
+          "rawSql": "SELECT avg(duration_ms) FROM jenkins_metrics WHERE created_at >= now() - interval '7 days'",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Builds by Status",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "targets": [
+        {
+          "rawSql": "SELECT status, count(*) AS value FROM jenkins_metrics GROUP BY status",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Build Duration Over Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "targets": [
+        {
+          "rawSql": "SELECT created_at AS time, duration_ms, job_name FROM jenkins_metrics WHERE created_at >= now() - interval '7 days' ORDER BY created_at",
+          "format": "time_series"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Recent Builds",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 14 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "targets": [
+        {
+          "rawSql": "SELECT created_at, job_name, build_number, status, duration_ms FROM jenkins_metrics ORDER BY created_at DESC LIMIT 50",
+          "format": "table"
+        }
+      ]
+    }
+  ]
+}

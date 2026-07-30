@@ -1,0 +1,48 @@
+{
+  "title": "Pod Dashboard",
+  "uid": "aiops-pod-dashboard",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Pod Restarts (rate, 5m)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(kube_pod_container_status_restarts_total[5m])) by (pod)",
+          "legendFormat": "{{pod}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Pods Not Ready",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(kube_pod_status_ready{condition=\"false\"}) by (pod)",
+          "legendFormat": "{{pod}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "CrashLoopBackOff / Waiting Pods",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "kube_pod_container_status_waiting_reason{reason=\"CrashLoopBackOff\"}",
+          "format": "table",
+          "instant": true
+        }
+      ]
+    }
+  ]
+}

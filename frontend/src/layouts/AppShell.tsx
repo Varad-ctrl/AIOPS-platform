@@ -7,8 +7,9 @@ const NAV_ITEMS = [
   { to: "/kubernetes", label: "Kubernetes", glyph: "⬡" },
   { to: "/metrics", label: "Metrics", glyph: "▲" },
   { to: "/alerts", label: "Alerts", glyph: "●" },
-  { to: "/jenkins", label: "Jenkins", glyph: "◫" },
   { to: "/incidents", label: "Incidents", glyph: "◔" },
+  { to: "/logs", label: "Logs", glyph: "▤" },
+  { to: "/jenkins", label: "Jenkins", glyph: "◫" },
   { to: "/chat", label: "AI Chat", glyph: "◈" },
   { to: "/settings", label: "Settings", glyph: "◐" },
 ];
@@ -60,7 +61,7 @@ export default function AppShell() {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-14 border-b border-base-700 bg-base-900/60 backdrop-blur flex items-center px-6 justify-between">
           <SystemPulseStrip />
-          <span className="label-eyebrow">Phase 2 · Monitoring</span>
+          <span className="label-eyebrow">Phase 5 · AI Assistant</span>
         </header>
         <main className="flex-1 overflow-y-auto p-6">
           <Outlet />

@@ -1,0 +1,86 @@
+{
+  "title": "Incident Dashboard",
+  "uid": "aiops-incident-dashboard",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-7d", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Open Incidents",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "targets": [
+        {
+          "rawSql": "SELECT count(*) FROM incidents WHERE status IN ('open','acknowledged')",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Resolved This Week",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "targets": [
+        {
+          "rawSql": "SELECT count(*) FROM incidents WHERE status = 'resolved' AND updated_at >= now() - interval '7 days'",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Total Incidents",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "targets": [
+        { "rawSql": "SELECT count(*) FROM incidents", "format": "table" }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Incidents by Status",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "targets": [
+        {
+          "rawSql": "SELECT status, count(*) AS value FROM incidents GROUP BY status",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Incidents by Severity",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "targets": [
+        {
+          "rawSql": "SELECT severity, count(*) AS value FROM incidents WHERE status != 'resolved' GROUP BY severity",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Incident List",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 14 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "targets": [
+        {
+          "rawSql": "SELECT created_at, title, severity, status, alert_id FROM incidents ORDER BY created_at DESC LIMIT 50",
+          "format": "table"
+        }
+      ]
+    }
+  ]
+}

@@ -270,9 +270,10 @@ node count instead of Phase 1's static placeholders.
 
 ## What's next
 
-Phase 3 (Log Intelligence) adds Loki/OpenSearch log aggregation and a
-centralized log explorer. Phase 4 introduces the AI agent that reasons over
-everything Phase 2 now collects.
+Everything through Phase 5 (AI Assistant) is now live - see the sections
+below. What remains from the original roadmap is Phase 6-style
+auto-remediation (one-click execution of AI recommendations) and
+multi-cluster/ticketing stretch goals.
 
 ## Module 2.6 — Alert Management (complete)
 
@@ -310,3 +311,108 @@ Migration `0003` adds `alerts.status`, `alerts.acknowledged_by`, and
 
 The Alerts page in the frontend now shows a dashboard summary strip and
 Acknowledge/Resolve buttons (visible to `admin`/`devops_engineer` roles).
+
+## Phase 3/4 — Log Intelligence & Observability
+
+**Log collection (Module 4.3):** Loki + Promtail added to Docker Compose.
+Promtail scrapes every container on the Docker host via the Docker socket -
+backend, frontend, postgres, prometheus, alertmanager, and grafana are all
+covered automatically, no per-service config needed. A regex pipeline stage
+best-effort extracts a `level` label (error/warn/info/debug/...) so severity
+filtering works without requiring structured JSON logging everywhere.
+
+**Log APIs (Module 4.4):**
+
+```
+GET /api/v1/logs                              # alias of /logs/recent
+GET /api/v1/logs/recent?hours=1&limit=100
+GET /api/v1/logs/search?query=&namespace=&pod=&container=&service=&severity=&hours=1&limit=200
+GET /api/v1/logs/pods/{pod}?hours=1&limit=200
+GET /api/v1/logs/containers/{container}?hours=1&limit=200
+GET /api/v1/logs/errors?hours=1&limit=200
+GET /api/v1/logs/labels/{label}                 # distinct values, powers filter dropdowns
+```
+
+**Frontend Logs page (Module 4.5):** search, filter by namespace/pod/severity,
+a live-stream toggle (10s auto-refresh vs static), and a Download button that
+exports the current view as a `.txt` file client-side.
+
+**Grafana dashboards (Module 4.1):** six dashboards are auto-provisioned on
+`docker compose up` - no manual setup:
+
+| Dashboard  | Data source | Shows |
+|------------|-------------|-------|
+| Node       | Prometheus  | CPU/memory/disk/network for the host |
+| Cluster    | Prometheus (kube-state-metrics) | Node/pod/deployment counts, pod phase breakdown |
+| Pod        | Prometheus (kube-state-metrics) | Restart rate, not-ready pods, CrashLoopBackOff table |
+| Alert      | PostgreSQL  | Active/critical counts, resolved-today, severity breakdown, recent alerts table |
+| Incident   | PostgreSQL  | Open/resolved counts, status + severity breakdown, incident list |
+| Jenkins    | PostgreSQL  | Build counts, failure rate, duration trend, recent builds table |
+
+The Alert/Incident/Jenkins dashboards query the `alerts`, `incidents`, and
+`jenkins_metrics` tables directly via a PostgreSQL datasource, since that
+data lives in the application database, not Prometheus. Open Grafana at
+`http://localhost:3001` (admin/admin).
+
+## Phase 5 — AI Assistant
+
+**LLM provider (Module 5.1):** `LLM_PROVIDER` selects a preset base URL +
+default model - `groq` (recommended for development), `openai`, or `ollama`
+(fully local, no API key). Override individually with `LLM_BASE_URL` /
+`LLM_MODEL` if needed. `ai_service.py` speaks the OpenAI-compatible
+`/chat/completions` shape, which all three providers share, so there's no
+provider-specific branching in the code.
+
+**AI APIs (Module 5.3):**
+
+```
+POST /api/v1/ai/chat                    {"question": "..."}
+POST /api/v1/ai/root-cause               {"incident_id"?, "description"?}
+POST /api/v1/ai/log-analysis              {"namespace"?, "pod"?, "hours"?}
+POST /api/v1/ai/incident-summary           {"incident_id"}
+POST /api/v1/ai/recommendations
+GET  /api/v1/ai/logs/summary?namespace=&pod=&hours=1
+GET  /api/v1/ai/logs/anomalies?namespace=&pod=&hours=1
+GET  /api/v1/ai/chat/history
+```
+
+`/ai/query` and `/ai/incidents/{id}/root-cause` remain as back-compat
+aliases from Phase 3.
+
+**Context engine (Module 5.4):** every AI call assembles live context
+server-side before prompting the model - current metrics (Prometheus),
+cluster state (Kubernetes), job status (Jenkins), active alerts, open
+incidents, and a sample of recent logs (Loki). None of these are optional
+add-ons; `_assemble_context()` in `insight_service.py` is the single place
+this happens, so every endpoint reasons over the same picture of the system.
+
+**Root cause analysis (Module 5.6):** `/ai/root-cause` runs the full
+workflow from the roadmap - collect pod/cluster state, related logs, current
+metrics, and active alerts, send it all to the LLM in one prompt, and get
+back structured JSON: `root_cause`, `confidence` (low/medium/high),
+`recommendation`, and `evidence` (a list of specific facts cited from the
+context, not freeform prose). Works two ways: bound to an existing incident
+(`incident_id`, persists to `analysis_logs`) or freeform (`description`,
+e.g. "why is nginx restarting?") for cases where nothing's been opened yet.
+
+**Chat UI (Module 5.5):** AI Chat renders assistant responses as markdown
+(headings, lists, fenced code blocks styled for kubectl commands and log
+snippets) via `react-markdown`, keeps full conversation history (persisted
+server-side to `chat_history`), and suggests starter questions when empty.
+The Incidents page shows RCA results as the structured fields above rather
+than a text blob, plus a separate AI Summarize button for quick status
+updates. The Alerts page has an AI Recommendations panel and a "Promote to
+incident" action completing the Alert → Incident → Resolved flow.
+
+### Phase 3/4/5 validation checklist
+
+- [x] Loki + Promtail collecting logs from every container, with level extraction
+- [x] `/logs` family of endpoints: recent, search, pods/{pod}, containers/{container}, errors, labels/{label}
+- [x] Frontend Logs page: search/filter, live toggle, download-as-text
+- [x] Six Grafana dashboards auto-provisioned (Node, Cluster, Pod, Alert, Incident, Jenkins), PostgreSQL datasource added alongside Prometheus/Loki
+- [x] `LLM_PROVIDER` config (groq/openai/ollama presets) with backward-compat for `OPENAI_API_KEY`
+- [x] `/ai/chat`, `/ai/root-cause`, `/ai/log-analysis`, `/ai/incident-summary`, `/ai/recommendations` all live
+- [x] Context engine includes Kubernetes + Jenkins state, not just metrics/alerts/logs
+- [x] Root cause analysis returns structured JSON (root_cause/confidence/recommendation/evidence), not prose
+- [x] AI Chat renders markdown + code blocks; Incidents page shows structured RCA
+- [x] Pytest coverage for every new endpoint's graceful-degradation path (no Loki, no LLM key configured)
