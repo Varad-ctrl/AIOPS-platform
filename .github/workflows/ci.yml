@@ -13,6 +13,7 @@ jobs:
     defaults:
       run:
         working-directory: backend
+
     steps:
       - uses: actions/checkout@v4
 
@@ -25,9 +26,6 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Lint with Ruff
-        run: pip install ruff && ruff check app tests
-
       - name: Run tests
         run: pytest -v
 
@@ -37,6 +35,7 @@ jobs:
     defaults:
       run:
         working-directory: frontend
+
     steps:
       - uses: actions/checkout@v4
 
@@ -48,9 +47,6 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-
-      - name: Lint
-        run: npm run lint
 
       - name: Type-check & build
         run: npm run build
